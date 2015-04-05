@@ -60,7 +60,7 @@ static int auth_password(ssh_session session, const char *user,
     return SSH_AUTH_DENIED;
 }
 
-static int auth_gssapi_mic(ssh_session session, const char *user, const char *principal, void *userdata){
+/*static int auth_gssapi_mic(ssh_session session, const char *user, const char *principal, void *userdata){
     ssh_gssapi_creds creds = ssh_gssapi_get_creds(session);
     (void)userdata;
     printf("Authenticating user %s with gssapi principal %s\n",user, principal);
@@ -71,7 +71,7 @@ static int auth_gssapi_mic(ssh_session session, const char *user, const char *pr
     printf("authenticated\n");
     authenticated = 1;
     return SSH_AUTH_SUCCESS;
-}
+}*/
 
 static int pty_request(ssh_session session, ssh_channel channel, const char *term,
         int x,int y, int px, int py, void *userdata){
@@ -222,7 +222,7 @@ int main(int argc, char **argv){
     struct ssh_server_callbacks_struct cb = {
         .userdata = NULL,
         .auth_password_function = auth_password,
-        .auth_gssapi_mic_function = auth_gssapi_mic,
+        /*.auth_gssapi_mic_function = auth_gssapi_mic,*/
         .channel_open_request_session_function = new_session_channel
     };
 

@@ -34,6 +34,9 @@ struct ssh_public_key_struct {
 #elif HAVE_LIBCRYPTO
     DSA *dsa_pub;
     RSA *rsa_pub;
+#elif defined HAVE_BOTAN
+	std::shared_ptr<Botan::DSA_PublicKey> dsa_pub;
+	std::shared_ptr<Botan::RSA_PublicKey> rsa_pub;
 #endif
 };
 
@@ -45,6 +48,9 @@ struct ssh_private_key_struct {
 #elif defined HAVE_LIBCRYPTO
     DSA *dsa_priv;
     RSA *rsa_priv;
+#elif defined HAVE_BOTAN
+	std::shared_ptr<Botan::DSA_PrivateKey> dsa_priv;
+	std::shared_ptr<Botan::RSA_PrivateKey> rsa_priv;
 #endif
 };
 

@@ -56,6 +56,12 @@ struct ssh_key_struct {
 #else
     void *ecdsa;
 #endif /* HAVE_OPENSSL_EC_H */
+#elif HAVE_BOTAN
+	std::shared_ptr<Botan::DSA_PrivateKey> dsa;
+	std::shared_ptr<Botan::RSA_PrivateKey> rsa;
+	std::shared_ptr<Botan::DSA_PublicKey> dsa_pub;
+	std::shared_ptr<Botan::RSA_PublicKey> rsa_pub;
+	void* ecdsa;
 #endif
     ed25519_pubkey *ed25519_pubkey;
     ed25519_privkey *ed25519_privkey;
@@ -77,6 +83,10 @@ struct ssh_signature_struct {
 # else
     void *ecdsa_sig;
 # endif
+#elif defined HAVE_BOTAN
+	ssh_string dsa_sig;
+	ssh_string rsa_sig;
+	void* ecdsa_sig;
 #endif
     ed25519_signature *ed25519_sig;
 };

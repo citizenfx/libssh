@@ -110,6 +110,8 @@ struct ssh_cipher_struct {
 #elif defined HAVE_LIBCRYPTO
     void *key; /* a key buffer allocated for the algo */
     void *IV;
+#elif defined HAVE_BOTAN
+	void* key;
 #endif
     unsigned int keysize; /* bytes of key used. != keylen */
     /* sets the new key for immediate use */

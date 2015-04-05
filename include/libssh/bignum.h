@@ -23,6 +23,7 @@
 
 #include "libssh/libcrypto.h"
 #include "libssh/libgcrypt.h"
+#include "libssh/botan.h"
 
 bignum make_string_bn(ssh_string string);
 void make_string_bn_inplace(ssh_string string, bignum bnout);

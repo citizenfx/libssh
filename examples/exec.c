@@ -11,7 +11,7 @@ int main(void) {
     int nbytes;
     int rc;
 
-    session = connect_ssh("localhost", NULL, 0);
+    session = connect_ssh("192.168.178.83", NULL, 10);
     if (session == NULL) {
         ssh_finalize();
         return 1;

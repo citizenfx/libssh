@@ -62,8 +62,8 @@
 #  include <stdio.h>
 
 /* On Microsoft compilers define inline to __inline on all others use inline */
-#  undef inline
-#  define inline __inline
+//#  undef inline
+//#  define inline __inline
 
 #  define strcasecmp _stricmp
 #  define strncasecmp _strnicmp
@@ -103,6 +103,12 @@
 #    endif /* HAVE_VSNPRINTF */
 #   endif /* HAVE__VSNPRINTF */
 #  endif /* HAVE__VSNPRINTF_S */
+
+#include <stdint.h>
+
+typedef uint8_t u_int8_t;
+typedef uint16_t u_int16_t;
+typedef uint32_t u_int32_t;
 
 # endif /* _MSC_VER */
 
