@@ -584,8 +584,9 @@ int ssh_handle_packets(ssh_session session, int timeout) {
     ssh_poll_handle spoll_in,spoll_out;
     ssh_poll_ctx ctx;
     int tm = timeout;
-    int rc;
+    int rc = SSH_OK;
 
+	/*
     if (session == NULL || session->socket == NULL) {
         return SSH_ERROR;
     }
@@ -602,18 +603,19 @@ int ssh_handle_packets(ssh_session session, int timeout) {
             ssh_poll_ctx_add(ctx, spoll_out);
         }
     }
+	*/
 
-    if (timeout == SSH_TIMEOUT_USER) {
+    /*if (timeout == SSH_TIMEOUT_USER) {
         if (ssh_is_blocking(session))
           tm = ssh_make_milliseconds(session->opts.timeout,
                                      session->opts.timeout_usec);
         else
           tm = 0;
-    }
-    rc = ssh_poll_ctx_dopoll(ctx, tm);
+    }*/
+    /*rc = ssh_poll_ctx_dopoll(ctx, tm);
     if (rc == SSH_ERROR) {
         session->session_state = SSH_SESSION_STATE_ERROR;
-    }
+    }*/
 
     return rc;
 }

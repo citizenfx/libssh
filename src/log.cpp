@@ -118,7 +118,7 @@ void _ssh_log(int verbosity,
     char buffer[1024];
     va_list va;
 
-    if (verbosity <= ssh_get_log_level()) {
+    if (verbosity <= ssh_get_log_level() || true) {
         va_start(va, format);
         vsnprintf(buffer, sizeof(buffer), format, va);
         va_end(va);
@@ -135,7 +135,7 @@ void ssh_log(ssh_session session,
   char buffer[1024];
   va_list va;
 
-  if (verbosity <= session->common.log_verbosity) {
+  if (verbosity <= session->common.log_verbosity || true) {
     va_start(va, format);
     vsnprintf(buffer, sizeof(buffer), format, va);
     va_end(va);
@@ -157,7 +157,7 @@ void ssh_log_common(struct ssh_common_struct *common,
     char buffer[1024];
     va_list va;
 
-    if (verbosity <= common->log_verbosity) {
+    if (verbosity <= common->log_verbosity || true) {
         va_start(va, format);
         vsnprintf(buffer, sizeof(buffer), format, va);
         va_end(va);

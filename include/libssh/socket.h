@@ -22,10 +22,44 @@
 #define SOCKET_H_
 
 #include "libssh/callbacks.h"
+#include "libssh/poll.h"
+
+#include <functional>
 struct ssh_poll_handle_struct;
 /* socket.c */
 
-struct ssh_socket_struct;
+enum ssh_socket_states_e
+{
+	SSH_SOCKET_NONE,
+	SSH_SOCKET_CONNECTING,
+	SSH_SOCKET_CONNECTED,
+	SSH_SOCKET_EOF,
+	SSH_SOCKET_ERROR,
+	SSH_SOCKET_CLOSED
+};
+
+struct ssh_socket_struct {
+  socket_t fd_in;
+  socket_t fd_out;
+  int fd_is_socket;
+  void(*input_callback)(ssh_socket_struct* socket, const void* buffer, size_t len); // called by host
+  int(*write_callback)(ssh_socket_struct* socket, const void* buffer, size_t len); // provided by host
+  std::function<void()> close_callback;
+  int is_callback_socket;
+  int last_errno;
+  int read_wontblock; /* reading now on socket will
+                       not block */
+  int write_wontblock;
+  int data_except;
+  enum ssh_socket_states_e state;
+  ssh_buffer out_buffer;
+  ssh_buffer in_buffer;
+  ssh_session session;
+  ssh_socket_callbacks callbacks;
+  ssh_poll_handle poll_in;
+  ssh_poll_handle poll_out;
+};
+
 typedef struct ssh_socket_struct* ssh_socket;
 
 int ssh_socket_init(void);

@@ -671,5 +671,9 @@ LIBSSH_API const char* ssh_get_hmac_out(ssh_session session);
 #ifdef __cplusplus
 }
 #endif
+
+#ifdef _MSC_VER
+#include <crtdbg.h>
+#endif
 #endif /* _LIBSSH_H */
 /* vim: set ts=2 sw=2 et cindent: */

@@ -156,6 +156,11 @@ void ssh_key_clean (ssh_key key){
 #ifdef HAVE_OPENSSL_ECC
     if(key->ecdsa) EC_KEY_free(key->ecdsa);
 #endif /* HAVE_OPENSSL_ECC */
+#elif defined HAVE_BOTAN
+	if (key->rsa) key->rsa.reset();
+	if (key->dsa) key->dsa.reset();
+	if (key->rsa_pub) key->rsa_pub.reset();
+	if (key->dsa_pub) key->dsa_pub.reset();
 #endif
     if (key->ed25519_privkey != NULL){
         BURN_BUFFER(key->ed25519_privkey, sizeof(ed25519_privkey));
@@ -352,6 +357,8 @@ void ssh_signature_free(ssh_signature sig)
             gcry_sexp_release(sig->dsa_sig);
 #elif defined HAVE_LIBCRYPTO
             DSA_SIG_free(sig->dsa_sig);
+#elif defined HAVE_BOTAN
+			ssh_string_free(sig->dsa_sig);
 #endif
             break;
         case SSH_KEYTYPE_RSA:
@@ -360,6 +367,8 @@ void ssh_signature_free(ssh_signature sig)
             gcry_sexp_release(sig->rsa_sig);
 #elif defined HAVE_LIBCRYPTO
             SAFE_FREE(sig->rsa_sig);
+#elif defined HAVE_BOTAN
+			ssh_string_free(sig->rsa_sig);
 #endif
             break;
         case SSH_KEYTYPE_ECDSA:

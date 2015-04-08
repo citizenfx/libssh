@@ -29,6 +29,7 @@
 #define SERVER_H
 
 #include "libssh/libssh.h"
+#include "libssh/socket.h"
 #define SERVERBANNER CLIENTBANNER
 
 #ifdef __cplusplus
@@ -173,7 +174,7 @@ LIBSSH_API int ssh_bind_accept(ssh_bind ssh_bind_o, ssh_session session);
  * @return SSH_OK when a connection is established
  */
 LIBSSH_API int ssh_bind_accept_fd(ssh_bind ssh_bind_o, ssh_session session,
-        socket_t fd);
+        socket_t fd, ssh_socket* outSocket);
 
 LIBSSH_API ssh_gssapi_creds ssh_gssapi_get_creds(ssh_session session);
 

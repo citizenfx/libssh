@@ -59,7 +59,7 @@ typedef void *EVPCTX;
 typedef Botan::BigInt bignum;
 
 #define bignum_new() Botan::BigInt()
-#define bignum_free(x) 
+#define bignum_free(x) x = Botan::BigInt()
 #define bignum_set_word(bn, n) bn = Botan::BigInt(n)
 #define bignum_bin2bn(bn, datalen, data) bn.binary_decode(data, datalen)
 #define bignum_dec2bn(num, data) *data = Botan::BigInt(std::string(num))

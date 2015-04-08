@@ -64,33 +64,6 @@
  * @{
  */
 
-enum ssh_socket_states_e {
-	SSH_SOCKET_NONE,
-	SSH_SOCKET_CONNECTING,
-	SSH_SOCKET_CONNECTED,
-	SSH_SOCKET_EOF,
-	SSH_SOCKET_ERROR,
-	SSH_SOCKET_CLOSED
-};
-
-struct ssh_socket_struct {
-  socket_t fd_in;
-  socket_t fd_out;
-  int fd_is_socket;
-  int last_errno;
-  int read_wontblock; /* reading now on socket will
-                       not block */
-  int write_wontblock;
-  int data_except;
-  enum ssh_socket_states_e state;
-  ssh_buffer out_buffer;
-  ssh_buffer in_buffer;
-  ssh_session session;
-  ssh_socket_callbacks callbacks;
-  ssh_poll_handle poll_in;
-  ssh_poll_handle poll_out;
-};
-
 static int sockets_initialized = 0;
 
 static int ssh_socket_unbuffered_read(ssh_socket s, void *buffer, uint32_t len);
@@ -141,7 +114,7 @@ void ssh_socket_cleanup(void) {
 ssh_socket ssh_socket_new(ssh_session session) {
   ssh_socket s;
 
-  s = (ssh_socket)malloc(sizeof(struct ssh_socket_struct));
+  s = (ssh_socket)new ssh_socket_struct();
   if (s == NULL) {
     ssh_set_error_oom(session);
     return NULL;
@@ -169,6 +142,25 @@ ssh_socket ssh_socket_new(ssh_session session) {
   s->data_except = 0;
   s->poll_in=s->poll_out=NULL;
   s->state=SSH_SOCKET_NONE;
+  s->input_callback = [] (ssh_socket s, const void* buffer, size_t r)
+  {
+	if (s->session->socket_counter != NULL) {
+		s->session->socket_counter->in_bytes += r;
+	}
+	/* Bufferize the data and then call the callback */
+	r = ssh_buffer_add_data(s->in_buffer, buffer, r);
+	if (r < 0) {
+		return;
+	}
+	if (s->callbacks && s->callbacks->data) {
+		do {
+		r = s->callbacks->data(buffer_get_rest(s->in_buffer),
+								buffer_get_rest_len(s->in_buffer),
+								s->callbacks->userdata);
+		buffer_pass_bytes(s->in_buffer, r);
+		} while ((r > 0) && (s->state == SSH_SOCKET_CONNECTED));
+	}
+  };
   return s;
 }
 
@@ -381,7 +373,7 @@ void ssh_socket_free(ssh_socket s){
   ssh_socket_close(s);
   ssh_buffer_free(s->in_buffer);
   ssh_buffer_free(s->out_buffer);
-  SAFE_FREE(s);
+  delete s;
 }
 
 #ifndef _WIN32
@@ -424,16 +416,23 @@ int ssh_socket_unix(ssh_socket s, const char *path) {
  */
 void ssh_socket_close(ssh_socket s){
   if (ssh_socket_is_open(s)) {
+    if (s->is_callback_socket)
+    {
+      s->close_callback();
+    }
+	else
+	{
 #ifdef _WIN32
-    closesocket(s->fd_in);
-    /* fd_in = fd_out under win32 */
-    s->last_errno = WSAGetLastError();
+	  closesocket(s->fd_in);
+	  /* fd_in = fd_out under win32 */
+	  s->last_errno = WSAGetLastError();
 #else
-    close(s->fd_in);
-    if(s->fd_out != s->fd_in && s->fd_out != -1)
-      close(s->fd_out);
-    s->last_errno = errno;
+	  close(s->fd_in);
+	  if(s->fd_out != s->fd_in && s->fd_out != -1)
+	    close(s->fd_out);
+	  s->last_errno = errno;
 #endif
+	}
     s->fd_in = s->fd_out = SSH_INVALID_SOCKET;
   }
   if(s->poll_in != NULL){
@@ -551,7 +550,9 @@ static int ssh_socket_unbuffered_write(ssh_socket s, const void *buffer,
   if (s->data_except) {
     return -1;
   }
-  if (s->fd_is_socket)
+  if (s->is_callback_socket)
+	w = s->write_callback(s, buffer, len);
+  else if (s->fd_is_socket)
     w = send(s->fd_out,(const char*)buffer, len, 0);
   else
     w = write(s->fd_out, buffer, len);
@@ -650,13 +651,13 @@ int ssh_socket_nonblocking_flush(ssh_socket s) {
   }
 
   len = buffer_get_rest_len(s->out_buffer);
-  if (!s->write_wontblock && s->poll_out && len > 0) {
+  if (!s->is_callback_socket && !s->write_wontblock && s->poll_out && len > 0) {
       /* force the poll system to catch pollout events */
       ssh_poll_add_events(s->poll_out, POLLOUT);
 
       return SSH_AGAIN;
   }
-  if (s->write_wontblock && len > 0) {
+  if ((s->write_wontblock || s->is_callback_socket) && len > 0) {
     w = ssh_socket_unbuffered_write(s, buffer_get_rest(s->out_buffer), len);
     if (w < 0) {
       session->alive = 0;

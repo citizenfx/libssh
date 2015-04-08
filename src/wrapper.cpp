@@ -121,7 +121,7 @@ void ssh_cipher_clear(struct ssh_cipher_struct *cipher){
     /* destroy the key */
     memset(cipher->key, 0, cipher->keylen);
 #elif defined HAVE_BOTAN
-	delete (ssh_cipher_key_struct*)cipher->key;
+	delete (ssh_cipher_key_struct*)(cipher->key);
 #endif
 
 #ifndef HAVE_BOTAN

@@ -11,6 +11,10 @@
 #define HAVE__VSNPRINTF_S 1
 #define HAVE_COMPILER__FUNCTION__ 1
 #define HAVE_ISBLANK 1
+
+#ifdef _DEBUG
+#define _CRTDBG_MAP_ALLOC
+#endif
 #else
 #define HAVE_STRTOULL 1
 #define HAVE_SNPRINTF 1

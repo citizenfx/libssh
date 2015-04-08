@@ -35,6 +35,7 @@
 #include <botan/cbc.h>
 #include <botan/pk_ops.h>
 #include <botan/pk_filts.h>
+#include <botan/pem.h>
 
 #include "libssh/priv.h"
 #include "libssh/buffer.h"
@@ -606,6 +607,39 @@ ssh_string pki_private_key_to_pem(const ssh_key key,
     (void) passphrase;
     (void) auth_fn;
     (void) auth_data;
+
+	std::shared_ptr<Botan::Private_Key> pkey;
+
+	if (key->type == SSH_KEYTYPE_RSA)
+	{
+		pkey = key->rsa;
+	}
+	else if (key->type == SSH_KEYTYPE_DSS)
+	{
+		pkey = key->dsa;
+	}
+
+	if (pkey.get())
+	{
+		Botan::AutoSeeded_RNG rng;
+		std::string pem;
+
+		pem = Botan::PEM_Code::encode(pkey->pkcs8_private_key(), pkey->algo_name() + " PRIVATE KEY");
+
+/*		if (passphrase)
+		{
+			pem = Botan::PKCS8::PEM_encode(*pkey.get(), rng, std::string(passphrase), std::chrono::milliseconds(1000));
+		}
+		else
+		{
+			pem = Botan::PKCS8::PEM_encode(*pkey.get());
+		}*/
+
+		ssh_string str = ssh_string_new(pem.size());
+		ssh_string_fill(str, pem.c_str(), pem.size());
+
+		return str;
+	}
 
     return NULL;
 }

@@ -354,6 +354,8 @@ void publickey_free(ssh_public_key key) {
       gcry_sexp_release(key->dsa_pub);
 #elif HAVE_LIBCRYPTO
       DSA_free(key->dsa_pub);
+#elif HAVE_BOTAN
+	  key->dsa_pub.reset();
 #endif
       break;
     case SSH_KEYTYPE_RSA:
@@ -362,6 +364,8 @@ void publickey_free(ssh_public_key key) {
       gcry_sexp_release(key->rsa_pub);
 #elif defined HAVE_LIBCRYPTO
       RSA_free(key->rsa_pub);
+#elif defined HAVE_BOTAN
+	  key->rsa_pub.reset();
 #endif
       break;
     default:

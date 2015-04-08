@@ -147,6 +147,11 @@ ssh_bind ssh_bind_new(void) {
 static int ssh_bind_import_keys(ssh_bind sshbind) {
   int rc;
 
+  if (sshbind->ecdsa != nullptr || sshbind->dsa != nullptr || sshbind->rsa != nullptr)
+  {
+	  return SSH_OK;
+  }
+
   if (sshbind->ecdsakey == NULL &&
       sshbind->dsakey == NULL &&
       sshbind->rsakey == NULL) {
@@ -385,7 +390,7 @@ void ssh_bind_free(ssh_bind sshbind){
   SAFE_FREE(sshbind);
 }
 
-int ssh_bind_accept_fd(ssh_bind sshbind, ssh_session session, socket_t fd){
+int ssh_bind_accept_fd(ssh_bind sshbind, ssh_session session, socket_t fd, ssh_socket* outSocket){
     int i, rc;
 
     if (session == NULL){
@@ -428,6 +433,11 @@ int ssh_bind_accept_fd(ssh_bind sshbind, ssh_session session, socket_t fd){
     }
     ssh_socket_set_fd(session->socket, fd);
     ssh_socket_get_poll_handle_out(session->socket);
+
+	if (outSocket)
+	{
+	  *outSocket = session->socket;
+	}
 
     /* We must try to import any keys that could be imported in case
      * we are not using ssh_bind_listen (which is the other place
@@ -496,7 +506,7 @@ int ssh_bind_accept(ssh_bind sshbind, ssh_session session) {
         strerror(errno));
     return SSH_ERROR;
   }
-  rc = ssh_bind_accept_fd(sshbind, session, fd);
+  rc = ssh_bind_accept_fd(sshbind, session, fd, nullptr);
 
   if(rc == SSH_ERROR){
 #ifdef _WIN32
