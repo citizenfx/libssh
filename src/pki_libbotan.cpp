@@ -34,8 +34,8 @@
 #include <botan/aes.h>
 #include <botan/cbc.h>
 #include <botan/pk_ops.h>
-#include <botan/pk_filts.h>
 #include <botan/pem.h>
+#include <botan/pubkey.h>
 
 #include "libssh/priv.h"
 #include "libssh/buffer.h"
@@ -809,15 +809,16 @@ ssh_key pki_key_dup(const ssh_key key, int demote)
         newk->flags = key->flags;
     }
 
-    switch(key->type) {
+	switch (key->type)
+	{
 		case SSH_KEYTYPE_DSS:
-			{
-				Botan::BigInt val = key->dsa->group_p();
-				ssh_string v = ssh_string_new(val.bytes());
-				val.binary_encode((uint8_t*)ssh_string_data(v));
+		{
+			Botan::BigInt val = key->dsa->group_p();
+			ssh_string v = ssh_string_new(val.bytes());
+			val.binary_encode((uint8_t*)ssh_string_data(v));
 
-				p = v;
-			}
+			p = v;
+		}
 
 			{
 				Botan::BigInt val = key->dsa->group_q();
@@ -851,7 +852,8 @@ ssh_key pki_key_dup(const ssh_key key, int demote)
 				p = v;
 			}
 
-            if (!demote && (key->flags & SSH_KEY_FLAG_PRIVATE)) {
+			if (!demote && (key->flags & SSH_KEY_FLAG_PRIVATE))
+			{
 				{
 					Botan::BigInt val = key->dsa->get_x();
 					ssh_string v = ssh_string_new(val.bytes());
@@ -870,92 +872,131 @@ ssh_key pki_key_dup(const ssh_key key, int demote)
 
 				newk->dsa = std::make_shared<Botan::DSA_PrivateKey>(rng, dl, xx);
 				pki_pubkey_build_dss(key, p, q, g, y);
-            } else {
+			}
+			else
+			{
 				pki_pubkey_build_dss(key, p, q, g, y);
-            }
-
-            ssh_string_burn(p);
-            ssh_string_free(p);
-            ssh_string_burn(q);
-            ssh_string_free(q);
-            ssh_string_burn(g);
-            ssh_string_free(g);
-            ssh_string_burn(y);
-            ssh_string_free(y);
-            ssh_string_burn(x);
-            ssh_string_free(x);
-            break;
-        case SSH_KEYTYPE_RSA:
-        case SSH_KEYTYPE_RSA1:
-			{
-				Botan::BigInt val = key->rsa->get_e();
-				ssh_string v = ssh_string_new(val.bytes());
-				val.binary_encode((uint8_t*)ssh_string_data(v));
-
-				e = v;
 			}
 
+			ssh_string_burn(p);
+			ssh_string_free(p);
+			ssh_string_burn(q);
+			ssh_string_free(q);
+			ssh_string_burn(g);
+			ssh_string_free(g);
+			ssh_string_burn(y);
+			ssh_string_free(y);
+			ssh_string_burn(x);
+			ssh_string_free(x);
+			break;
+		case SSH_KEYTYPE_RSA:
+		case SSH_KEYTYPE_RSA1:
+			if (!key->rsa_pub.get())
 			{
-				Botan::BigInt val = key->rsa->get_n();
-				ssh_string v = ssh_string_new(val.bytes());
-				val.binary_encode((uint8_t*)ssh_string_data(v));
+				{
+					Botan::BigInt val = key->rsa->get_e();
+					ssh_string v = ssh_string_new(val.bytes());
+					val.binary_encode((uint8_t*)ssh_string_data(v));
 
-				n = v;
+					e = v;
+				}
+
+				{
+					Botan::BigInt val = key->rsa->get_n();
+					ssh_string v = ssh_string_new(val.bytes());
+					val.binary_encode((uint8_t*)ssh_string_data(v));
+
+					n = v;
+				}
+
+				pki_pubkey_build_rsa(key, e, n);
 			}
 
-            if (!demote && (key->flags & SSH_KEY_FLAG_PRIVATE)) {
+			if (!demote && (key->flags & SSH_KEY_FLAG_PRIVATE))
+			{
+				newk->rsa = key->rsa;
+				newk->rsa_pub = key->rsa_pub;
+			}
+			else
+			{
+				newk->rsa.reset();
+				newk->rsa_pub = key->rsa_pub;
+			}
+			/*else
+			{
 				{
-					Botan::BigInt val = key->rsa->get_d();
+					Botan::BigInt val = key->rsa->get_e();
 					ssh_string v = ssh_string_new(val.bytes());
 					val.binary_encode((uint8_t*)ssh_string_data(v));
 
-					d = v;
+					e = v;
 				}
 
 				{
-					Botan::BigInt val = key->rsa->get_p();
+					Botan::BigInt val = key->rsa->get_n();
 					ssh_string v = ssh_string_new(val.bytes());
 					val.binary_encode((uint8_t*)ssh_string_data(v));
 
-					p = v;
+					n = v;
 				}
 
+				if (!demote && (key->flags & SSH_KEY_FLAG_PRIVATE))
 				{
-					Botan::BigInt val = key->rsa->get_q();
-					ssh_string v = ssh_string_new(val.bytes());
-					val.binary_encode((uint8_t*)ssh_string_data(v));
+					{
+						Botan::BigInt val = key->rsa->get_d();
+						ssh_string v = ssh_string_new(val.bytes());
+						val.binary_encode((uint8_t*)ssh_string_data(v));
 
-					q = v;
+						d = v;
+					}
+
+					{
+						Botan::BigInt val = key->rsa->get_p();
+						ssh_string v = ssh_string_new(val.bytes());
+						val.binary_encode((uint8_t*)ssh_string_data(v));
+
+						p = v;
+					}
+
+					{
+						Botan::BigInt val = key->rsa->get_q();
+						ssh_string v = ssh_string_new(val.bytes());
+						val.binary_encode((uint8_t*)ssh_string_data(v));
+
+						q = v;
+					}
+
+					Botan::AutoSeeded_RNG rng;
+					Botan::BigInt nn((uint8_t*)ssh_string_data(n), ssh_string_len(n));
+					Botan::BigInt ee((uint8_t*)ssh_string_data(e), ssh_string_len(e));
+					Botan::BigInt dd((uint8_t*)ssh_string_data(d), ssh_string_len(d));
+					Botan::BigInt pp((uint8_t*)ssh_string_data(p), ssh_string_len(p));
+					Botan::BigInt qq((uint8_t*)ssh_string_data(q), ssh_string_len(q));
+					Botan::BigInt uu((uint8_t*)ssh_string_data(u), ssh_string_len(u));
+
+					Botan::RSA_PrivateKey pk(rng, pp, qq, ee, dd, nn);
+
+					newk->rsa = std::make_shared<Botan::RSA_PrivateKey>(pk);
+					pki_pubkey_build_rsa(newk, e, n);
+				}
+				else
+				{
+					pki_pubkey_build_rsa(newk, e, n);
 				}
 
-				Botan::AutoSeeded_RNG rng;
-				Botan::BigInt nn((uint8_t*)ssh_string_data(n), ssh_string_len(n));
-				Botan::BigInt ee((uint8_t*)ssh_string_data(e), ssh_string_len(e));
-				Botan::BigInt dd((uint8_t*)ssh_string_data(d), ssh_string_len(d));
-				Botan::BigInt pp((uint8_t*)ssh_string_data(p), ssh_string_len(p));
-				Botan::BigInt qq((uint8_t*)ssh_string_data(q), ssh_string_len(q));
-				Botan::BigInt uu((uint8_t*)ssh_string_data(u), ssh_string_len(u));
-
-				Botan::RSA_PrivateKey pk(rng, pp, qq, ee, dd, nn);
-
-				newk->rsa = std::make_shared<Botan::RSA_PrivateKey>(pk);
-				pki_pubkey_build_rsa(newk, e, n);
-            } else {
-				pki_pubkey_build_rsa(newk, e, n);
-            }
-
-            ssh_string_burn(e);
-            ssh_string_free(e);
-            ssh_string_burn(n);
-            ssh_string_free(n);
-            ssh_string_burn(d);
-            ssh_string_free(d);
-            ssh_string_burn(p);
-            ssh_string_free(p);
-            ssh_string_burn(q);
-            ssh_string_free(q);
-            ssh_string_burn(u);
-            ssh_string_free(u);
+				ssh_string_burn(e);
+				ssh_string_free(e);
+				ssh_string_burn(n);
+				ssh_string_free(n);
+				ssh_string_burn(d);
+				ssh_string_free(d);
+				ssh_string_burn(p);
+				ssh_string_free(p);
+				ssh_string_burn(q);
+				ssh_string_free(q);
+				ssh_string_burn(u);
+				ssh_string_free(u);
+			}*/
 
             break;
         case SSH_KEYTYPE_ED25519:
@@ -1428,8 +1469,8 @@ int pki_signature_verify(ssh_session session,
 			{
 				std::shared_ptr<Botan::DSA_PublicKey> dsa = (key->dsa.get()) ? key->dsa : key->dsa_pub;
 
-				Botan::DSA_Verification_Operation op(*dsa);
-				err = (!op.verify(hash, hlen, (uint8_t*)ssh_string_data(sig->dsa_sig), ssh_string_len(sig->dsa_sig))) ? 1 : 0;
+				Botan::PK_Verifier op(*dsa, std::string("EMSA3(SHA-1)"));
+				err = (!op.verify_message(hash, hlen, (uint8_t*)ssh_string_data(sig->dsa_sig), ssh_string_len(sig->dsa_sig))) ? 1 : 0;
 			}
 
             if (err) {
