@@ -494,8 +494,6 @@ static int b64decode_rsa_privatekey(const char *pkey, std::shared_ptr<Botan::RSA
   }
 
   {
-	  Botan::AutoSeeded_RNG rng;
-
 	  Botan::BigInt nn((uint8_t*)ssh_string_data(n), ssh_string_len(n));
 	  Botan::BigInt ee((uint8_t*)ssh_string_data(e), ssh_string_len(e));
 	  Botan::BigInt dd((uint8_t*)ssh_string_data(d), ssh_string_len(d));
@@ -503,7 +501,7 @@ static int b64decode_rsa_privatekey(const char *pkey, std::shared_ptr<Botan::RSA
 	  Botan::BigInt qq((uint8_t*)ssh_string_data(q), ssh_string_len(q));
 	  Botan::BigInt uu((uint8_t*)ssh_string_data(u), ssh_string_len(u));
 
-	  Botan::RSA_PrivateKey pk(rng, pp, qq, ee, dd, nn);
+	  Botan::RSA_PrivateKey pk(pp, qq, ee, dd, nn);
 
 	  r = std::make_shared<Botan::RSA_PrivateKey>(pk);
   }
@@ -624,7 +622,7 @@ ssh_string pki_private_key_to_pem(const ssh_key key,
 		Botan::AutoSeeded_RNG rng;
 		std::string pem;
 
-		pem = Botan::PEM_Code::encode(pkey->pkcs8_private_key(), pkey->algo_name() + " PRIVATE KEY");
+		pem = Botan::PEM_Code::encode(pkey->private_key_bits(), pkey->algo_name() + " PRIVATE KEY");
 
 /*		if (passphrase)
 		{
@@ -1423,7 +1421,7 @@ ssh_signature pki_signature_from_blob(const ssh_key pubkey,
             break;
         case SSH_KEYTYPE_RSA:
         case SSH_KEYTYPE_RSA1:
-            rsalen = (rsa->max_input_bits() + 7) / 8;
+            rsalen = (rsa->key_length() + 7) / 8;
 
             if (len > rsalen) {
                 ssh_pki_log("Signature is to big size: %lu",

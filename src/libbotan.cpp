@@ -40,7 +40,7 @@
 #include "libssh/crypto.h"
 
 #include <botan/md5.h>
-#include <botan/sha1_sse2.h>
+#include <botan/sha160.h>
 #include <botan/sha2_32.h>
 #include <botan/sha2_64.h>
 
